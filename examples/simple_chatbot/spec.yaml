@@ -1,0 +1,32 @@
+name: simple_chatbot
+entry_point: greet
+state:
+- name: messages
+  type: list[BaseMessage]
+  reducer: add_messages
+  default: []
+nodes:
+- id: greet
+  type: python
+  config:
+    function: greet
+- id: chatbot
+  type: python
+  config:
+    function: chatbot
+- id: tools
+  type: python
+  config:
+    function: call_tools
+edges:
+- from: greet
+  to: chatbot
+- from: chatbot
+  condition: route_after_chatbot
+  paths:
+    continue: tools
+    end: END
+- from: tools
+  to: chatbot
+checkpointer:
+  type: none
