@@ -1,0 +1,37 @@
+name: Feature request
+description: Propose a new spec capability, MCP tool, or codegen target.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        This is a pre-1.0 project and the spec schema/tool signatures are
+        still settling — for anything beyond a small addition, filing this
+        first (rather than opening a surprise PR) makes it much easier to
+        agree on scope before code gets written. See the "Out of scope for
+        v0.1" list in the README for things that are known gaps, not
+        necessarily rejections.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do that the toolkit doesn't support today?
+      description: A concrete scenario, not just "add X" — helps judge whether this fits the spec-as-data model.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape (a new spec field, a new MCP tool, a new checkpointer type, ...)
+      description: Sketch what the spec.yaml or tool call would look like, if you have one in mind.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Workarounds you've tried
+      description: e.g. editing generated graph.py by hand, a custom reducer/function name — helps show why the toolkit-level feature is worth it.
+    validations:
+      required: false

@@ -1,0 +1,48 @@
+name: Bug report
+description: Something in the toolkit (validation, codegen, an MCP tool) isn't behaving correctly.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: spec
+    attributes:
+      label: Minimal spec.yaml (or tool calls) that reproduces it
+      description: >
+        The smallest spec.yaml, or sequence of MCP tool calls
+        (init_project/add_node/add_edge/...), that shows the problem.
+        This is usually the fastest way for someone to reproduce it.
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output / error
+      description: The tool response, error message, or generated graph.py, as applicable.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: langgraph-spec-toolkit version and how you're running it
+      description: e.g. "0.1.0 via uvx", or "from source at commit abc123" — and which MCP client (Claude Code, Cursor, ...), if relevant.
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: "`python --version`"
+    validations:
+      required: false
