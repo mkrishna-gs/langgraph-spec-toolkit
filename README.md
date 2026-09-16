@@ -75,14 +75,18 @@ flat graph:
 
 - Spec schema: state fields, nodes, edges (simple + conditional), checkpointer.
 - MCP tools: `init_project`, `add_node`, `add_edge`, `remove_node`,
-  `remove_edge`, `set_state_schema`, `validate_graph`, `render_python`.
+  `remove_edge`, `set_state_schema`, `get_spec`, `validate_graph`,
+  `render_python`.
 - Validation: unreachable nodes, missing path to `END`, dangling
-  conditions/edges, duplicate/typo'd ids.
+  conditions/edges, duplicate/typo'd ids, unsafe identifiers in
+  `function`/`condition`/state field names/reducers.
 - Deterministic Jinja2 codegen — no LLM in the render path.
+- `pytest` suite covering the spec model, validator, renderer, and every
+  MCP tool.
 
-Out of scope for v0.1: diagramming, subgraphs, multi-file projects, a
-`langgraph-codegen`-style DSL importer, and a test suite. This is a young
-project; expect the spec schema and tool signatures to evolve before 1.0.
+Out of scope for v0.1: diagramming, subgraphs, multi-file projects, and a
+`langgraph-codegen`-style DSL importer. This is a young project; expect the
+spec schema and tool signatures to evolve before 1.0.
 
 ## Installation
 
@@ -199,12 +203,20 @@ assumed to be a function you define in `reducers.py`.
 | `remove_node(project_dir, id)` | Remove a node; cascades to delete edges touching it. |
 | `remove_edge(project_dir, from_, to?)` | Remove edge(s) from a source, optionally to one target. |
 | `set_state_schema(project_dir, fields)` | Replace the state schema wholesale. |
+| `get_spec(project_dir)` | Read-only fetch of the full current spec. |
 | `validate_graph(project_dir)` | Run static checks; returns `ok` + a list of issues. |
 | `render_python(project_dir, output_path?)` | Emit `graph.py` (default: `<project_dir>/graph.py`). Blocks on validation *errors*. |
 
 > **Note:** edges use the parameter name `from_`, not `from` — the latter
 > is a reserved word in Python. It still round-trips through the `from:`
 > key in `spec.yaml`.
+
+> **Note:** the mutating tools (`add_node`, `add_edge`, `remove_node`,
+> `remove_edge`, `set_state_schema`) return a compact `summary` (node/edge/
+> state counts, entry point, checkpointer type) rather than the full spec —
+> echoing the whole graph back on every small edit would grow with graph
+> size and quietly erode the token savings this toolkit exists for. Call
+> `get_spec` when you actually need the full picture.
 
 ## Validation
 
@@ -216,6 +228,13 @@ assumed to be a function you define in `reducers.py`.
   target that isn't a real node id (or `END`).
 - **State/id typos** — duplicate node ids, duplicate state field names, an
   `entry_point` that doesn't match any node id, an unknown checkpointer type.
+- **Unsafe identifiers** — `config.function`, a conditional edge's
+  `condition`, a state field's `name`, and a non-builtin `reducer` are all
+  spliced into the generated Python unquoted (e.g. `nodes.<function>`), so
+  each must be a valid Python identifier; a state field's `type` must at
+  least parse as a Python expression. This is a correctness *and* safety
+  check — it's the boundary that keeps a bad spec value from becoming
+  arbitrary code in `graph.py`.
 
 `render_python` refuses to emit code while validation *errors* are present;
 warnings (like an unreachable node) don't block rendering.
@@ -247,10 +266,15 @@ what it counts as a "token" and why.
 ```bash
 uv sync
 uv run python -m mcp_server.server   # smoke-test the server starts
+uv run pytest                        # run the test suite
 ```
 
-There's no automated test suite yet. Contributions adding one (`pytest`,
-covering `spec.py`, `validator/`, `renderer/`, and each tool) are welcome.
+The test suite (`tests/`) covers `spec.py` (dataclasses, YAML round-trips),
+`validator/` (every check, including the identifier/injection-safety ones),
+`renderer/` (codegen against the committed example, plus each reducer/
+checkpointer variant), every MCP tool's `run()` function, and MCP tool
+registration itself. New tools or spec fields should come with tests in
+the matching file.
 
 ## Contributing
 
@@ -262,9 +286,11 @@ easier to land as a shared plan than as a surprise diff.
 Before opening a PR:
 
 1. `uv sync` and confirm `uv run python -m mcp_server.server` starts cleanly.
-2. Keep runtime dependencies to `mcp`, `jinja2`, `pyyaml` — anything else
-   belongs in the generated project, not this toolkit.
-3. Keep `render_python` deterministic: no LLM calls, no non-reproducible
+2. `uv run pytest` passes. New tools or spec fields need tests alongside them.
+3. Keep runtime dependencies to `mcp`, `jinja2`, `pyyaml` — anything else
+   belongs in the generated project, not this toolkit (test-only deps go in
+   `[dependency-groups.dev]`).
+4. Keep `render_python` deterministic: no LLM calls, no non-reproducible
    output, in the render path.
 
 ## License
