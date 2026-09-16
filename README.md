@@ -30,6 +30,7 @@ deterministic, regenerable build artifact you never hand-edit.
 - [Example](#example)
 - [Benchmarks](#benchmarks)
 - [Development](#development)
+- [Releasing](#releasing)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -91,28 +92,31 @@ spec schema and tool signatures to evolve before 1.0.
 
 ## Installation
 
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/) (which provides
+`uvx`).
+
+**Via `uvx`** (recommended once a release is published — no clone, no local
+install; `uvx` fetches and runs it on demand):
+
+```json
+{
+  "mcpServers": {
+    "langgraph-spec-toolkit": {
+      "command": "uvx",
+      "args": ["langgraph-spec-toolkit"]
+    }
+  }
+}
+```
+
+**From source** (needed until the first PyPI release lands, or if you're
+developing on the toolkit itself):
 
 ```bash
 git clone <this-repo>
 cd langgraph-spec-toolkit
 uv sync
 ```
-
-Runtime dependencies are intentionally minimal: `mcp`, `jinja2`, `pyyaml`.
-`render_python`'s *output* imports `langgraph` (and `langchain-core`, if
-your state uses message types) — those are dependencies of the project
-you're generating, not of this toolkit.
-
-## Usage
-
-Run the MCP server (speaks MCP over stdio):
-
-```bash
-uv run python -m mcp_server.server
-```
-
-Point your MCP client at it — for Claude Code / Claude Desktop:
 
 ```json
 {
@@ -123,6 +127,22 @@ Point your MCP client at it — for Claude Code / Claude Desktop:
     }
   }
 }
+```
+
+Runtime dependencies are intentionally minimal: `mcp`, `jinja2`, `pyyaml`.
+`render_python`'s *output* imports `langgraph` (and `langchain-core`, if
+your state uses message types) — those are dependencies of the project
+you're generating, not of this toolkit.
+
+## Usage
+
+Either config above starts the MCP server (it speaks MCP over stdio) the
+moment your client connects — there's no separate "run the server" step to
+do by hand. If you want to smoke-test it directly:
+
+```bash
+uv run python -m mcp_server.server   # from a source checkout
+uvx langgraph-spec-toolkit           # once published
 ```
 
 Then drive it through the tools below — or point Claude at `skill/SKILL.md`
@@ -280,6 +300,28 @@ the matching file.
 
 CI (`.github/workflows/ci.yml`) runs lint and the test suite (on Python
 3.11 and 3.12) on every push and pull request against `main`.
+
+## Releasing
+
+Publishing to PyPI (`.github/workflows/publish.yml`) uses
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) — no API
+token is stored in this repo. One-time setup (maintainers only):
+
+1. On [pypi.org](https://pypi.org), add a trusted publisher for this
+   project: owner `mkrishna-gs`, repo `langgraph-spec-toolkit`, workflow
+   `publish.yml`, environment `pypi`. (If the project doesn't exist on
+   PyPI yet, PyPI supports adding a trusted publisher for a
+   not-yet-published project name — it claims the name on first publish.)
+2. In this repo's GitHub settings, create an environment named `pypi`
+   (optionally with required reviewers, for an extra manual gate before
+   every publish).
+
+After that, cutting a release is the whole process:
+
+1. Bump `version` in `pyproject.toml`.
+2. Tag and push, then publish a GitHub Release from that tag (or use
+   `gh release create`).
+3. `publish.yml` builds the sdist/wheel and publishes them automatically.
 
 ## Contributing
 
