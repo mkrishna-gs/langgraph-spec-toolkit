@@ -95,8 +95,9 @@ spec schema and tool signatures to evolve before 1.0.
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/) (which provides
 `uvx`).
 
-**Via `uvx`** (recommended once a release is published — no clone, no local
-install; `uvx` fetches and runs it on demand):
+**Via `uvx`** (recommended — no clone, no local install; `uvx` fetches
+[`langgraph-spec-toolkit`](https://pypi.org/project/langgraph-spec-toolkit/)
+from PyPI and runs it on demand):
 
 ```json
 {
@@ -109,8 +110,7 @@ install; `uvx` fetches and runs it on demand):
 }
 ```
 
-**From source** (needed until the first PyPI release lands, or if you're
-developing on the toolkit itself):
+**From source** (if you're developing on the toolkit itself):
 
 ```bash
 git clone <this-repo>
@@ -142,7 +142,7 @@ do by hand. If you want to smoke-test it directly:
 
 ```bash
 uv run python -m mcp_server.server   # from a source checkout
-uvx langgraph-spec-toolkit           # once published
+uvx langgraph-spec-toolkit           # from PyPI
 ```
 
 Then drive it through the tools below — or point Claude at `skill/SKILL.md`
