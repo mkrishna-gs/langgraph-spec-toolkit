@@ -98,7 +98,11 @@ def test_dangling_condition_target():
 
 def test_unreachable_node_is_warning():
     spec = _linear_spec(
-        nodes=[Node(id="a", type="python"), Node(id="b", type="python"), Node(id="orphan", type="python")],
+        nodes=[
+            Node(id="a", type="python"),
+            Node(id="b", type="python"),
+            Node(id="orphan", type="python"),
+        ],
         edges=[Edge(from_="a", to="b"), Edge(from_="b", to="END"), Edge(from_="orphan", to="END")],
     )
     issues = validate(spec)
@@ -141,7 +145,10 @@ class TestIdentifierSafety:
 
     def test_function_defaults_to_node_id_when_omitted(self):
         # id itself must also be checked, since it's the fallback function name.
-        spec = _linear_spec(nodes=[Node(id="not an identifier", type="python")], entry_point="not an identifier")
+        spec = _linear_spec(
+            nodes=[Node(id="not an identifier", type="python")],
+            entry_point="not an identifier",
+        )
         assert "invalid_function_name" in codes(spec)
 
     def test_valid_function_name_is_clean(self):

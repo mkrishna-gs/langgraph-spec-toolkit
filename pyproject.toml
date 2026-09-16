@@ -31,7 +31,18 @@ build-backend = "hatchling.build"
 packages = ["mcp_server"]
 
 [dependency-groups]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# examples/ contains generated build artifacts (graph.py is emitted
+# byte-for-byte by renderer/render.py and asserted verbatim in tests) —
+# not toolkit source, so it isn't linted/formatted to this repo's style.
+extend-exclude = ["examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

@@ -1,5 +1,6 @@
 # langgraph-spec-toolkit
 
+[![CI](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![Status: v0.1 alpha](https://img.shields.io/badge/status-v0.1%20alpha-orange.svg)](#project-status)
@@ -267,6 +268,7 @@ what it counts as a "token" and why.
 uv sync
 uv run python -m mcp_server.server   # smoke-test the server starts
 uv run pytest                        # run the test suite
+uv run ruff check .                  # lint
 ```
 
 The test suite (`tests/`) covers `spec.py` (dataclasses, YAML round-trips),
@@ -275,6 +277,9 @@ The test suite (`tests/`) covers `spec.py` (dataclasses, YAML round-trips),
 checkpointer variant), every MCP tool's `run()` function, and MCP tool
 registration itself. New tools or spec fields should come with tests in
 the matching file.
+
+CI (`.github/workflows/ci.yml`) runs lint and the test suite (on Python
+3.11 and 3.12) on every push and pull request against `main`.
 
 ## Contributing
 
@@ -286,7 +291,8 @@ easier to land as a shared plan than as a surprise diff.
 Before opening a PR:
 
 1. `uv sync` and confirm `uv run python -m mcp_server.server` starts cleanly.
-2. `uv run pytest` passes. New tools or spec fields need tests alongside them.
+2. `uv run pytest` and `uv run ruff check .` both pass. New tools or spec
+   fields need tests alongside them.
 3. Keep runtime dependencies to `mcp`, `jinja2`, `pyyaml` — anything else
    belongs in the generated project, not this toolkit (test-only deps go in
    `[dependency-groups.dev]`).

@@ -59,7 +59,12 @@ def build_spec(tmp_dir: Path, n_nodes: int) -> Path:
         project_dir=str(project_dir),
         name=f"bench_{n_nodes}",
         state_fields=[
-            {"name": "messages", "type": "list[BaseMessage]", "reducer": "add_messages", "default": []}
+            {
+                "name": "messages",
+                "type": "list[BaseMessage]",
+                "reducer": "add_messages",
+                "default": [],
+            }
         ],
     )
     node_ids = [f"node_{i}" for i in range(n_nodes)]

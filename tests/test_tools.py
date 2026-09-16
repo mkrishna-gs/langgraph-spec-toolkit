@@ -99,7 +99,10 @@ class TestAddEdge:
     def test_conditional_edge(self, project_dir):
         self._project(project_dir)
         result = add_edge.run(
-            project_dir=str(project_dir), from_="a", condition="route", paths={"go": "b", "stop": "END"}
+            project_dir=str(project_dir),
+            from_="a",
+            condition="route",
+            paths={"go": "b", "stop": "END"},
         )
         assert result["ok"] is True
         assert result["edge"]["condition"] == "route"

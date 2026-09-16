@@ -35,7 +35,8 @@ class StateField:
     type: str
     reducer: str | None = None
     default: Any = None
-    has_default: bool = False  # tracks whether `default` was explicitly set (vs. None as a real default)
+    # tracks whether `default` was explicitly set (vs. None as a real default)
+    has_default: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {"name": self.name, "type": self.type}
