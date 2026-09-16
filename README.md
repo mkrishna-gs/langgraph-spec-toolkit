@@ -19,12 +19,14 @@ deterministic, regenerable build artifact you never hand-edit.
 
 ## Quick look
 
-<!-- A recorded demo.gif exists at .github/assets/demo.gif (regenerate with
-     `vhs .github/assets/demo.tape`) — swap this transcript for
-     `![demo](.github/assets/demo.gif)` once it's rendered and committed. -->
+![Demo: init_project, add_node, add_edge, validate_graph, and render_python run end to end, producing a deterministic graph.py](.github/assets/demo.gif)
 
-The same four calls the tools table below documents, run end to end
-(`.github/assets/demo.py`):
+Four tool calls, zero hand-written Python for the graph wiring itself.
+(Regenerate with `vhs .github/assets/demo.tape` — see that file for a
+`vhs` 0.12.0 bug you may need to work around.)
+
+<details>
+<summary>Text transcript, if the GIF doesn't load</summary>
 
 ```
 $ uv run python .github/assets/demo.py
@@ -69,7 +71,7 @@ def build_graph():
     return workflow.compile()
 ```
 
-Four tool calls, zero hand-written Python for the graph wiring itself.
+</details>
 
 ## Table of contents
 
