@@ -18,6 +18,7 @@ from mcp.server.mcpserver import MCPServer
 
 from .tools import add_edge as add_edge_tool
 from .tools import add_node as add_node_tool
+from .tools import get_spec as get_spec_tool
 from .tools import init_project as init_project_tool
 from .tools import remove_edge as remove_edge_tool
 from .tools import remove_node as remove_node_tool
@@ -31,7 +32,9 @@ mcp = MCPServer(
         "Build LangGraph projects by editing a structured spec.yaml instead of "
         "regenerating Python from scratch each turn. Call init_project once, then "
         "add_node/add_edge/set_state_schema to shape the graph, validate_graph to "
-        "check it, and render_python to emit graph.py."
+        "check it, and render_python to emit graph.py. add_node/add_edge/remove_node/"
+        "remove_edge/set_state_schema return a compact summary (counts), not the full "
+        "spec — call get_spec when you need the whole picture."
     ),
 )
 
@@ -113,6 +116,18 @@ def set_state_schema(project_dir: str, fields: list[dict[str, Any]]) -> dict[str
     function (e.g. "add_messages", or a custom name defined in reducers.py).
     """
     return set_state_schema_tool.run(project_dir=project_dir, fields=fields)
+
+
+@mcp.tool()
+def get_spec(project_dir: str) -> dict[str, Any]:
+    """Read-only fetch of the full current spec.
+
+    Mutating tools (add_node, add_edge, remove_node, remove_edge,
+    set_state_schema) return a compact summary (counts), not the full spec,
+    to keep per-edit response cost flat as the graph grows. Call this when
+    you actually need the whole picture.
+    """
+    return get_spec_tool.run(project_dir=project_dir)
 
 
 @mcp.tool()

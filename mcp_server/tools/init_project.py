@@ -55,5 +55,6 @@ def run(
         "project_dir": str(path),
         "spec_path": str(spec_file),
         "nodes_path": str(nodes_file),
-        "spec": spec.to_dict(),
+        "state": [f.to_dict() for f in spec.state],
+        "summary": spec.summary(),
     }

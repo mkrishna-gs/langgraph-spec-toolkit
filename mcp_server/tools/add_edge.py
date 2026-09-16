@@ -29,4 +29,4 @@ def run(
     edge = Edge(from_=from_, to=to, condition=condition, paths=paths)
     spec.edges.append(edge)
     save_spec(project_dir, spec)
-    return {"ok": True, "edge": edge.to_dict(), "spec": spec.to_dict()}
+    return {"ok": True, "edge": edge.to_dict(), "summary": spec.summary()}

@@ -1,6 +1,7 @@
 from . import (
     add_edge,
     add_node,
+    get_spec,
     init_project,
     remove_edge,
     remove_node,
@@ -12,6 +13,7 @@ from . import (
 __all__ = [
     "add_edge",
     "add_node",
+    "get_spec",
     "init_project",
     "remove_edge",
     "remove_node",

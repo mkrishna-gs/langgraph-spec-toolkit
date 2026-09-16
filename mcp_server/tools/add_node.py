@@ -37,5 +37,5 @@ def run(
         "action": action,
         "node": {"id": id, "type": type, "config": config},
         "entry_point": spec.entry_point,
-        "spec": spec.to_dict(),
+        "summary": spec.summary(),
     }

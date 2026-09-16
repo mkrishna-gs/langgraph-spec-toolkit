@@ -35,5 +35,5 @@ def run(project_dir: str, id: str) -> dict[str, Any]:
         "removed_node": id,
         "removed_edges": [e.to_dict() for e in removed_edges],
         "entry_point": spec.entry_point,
-        "spec": spec.to_dict(),
+        "summary": spec.summary(),
     }

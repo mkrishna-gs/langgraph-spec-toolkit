@@ -21,4 +21,4 @@ def run(project_dir: str, from_: str, to: str | None = None) -> dict[str, Any]:
         return {"ok": False, "error": f"no matching edge found (from={from_!r}, to={to!r})"}
 
     save_spec(project_dir, spec)
-    return {"ok": True, "removed_count": removed, "spec": spec.to_dict()}
+    return {"ok": True, "removed_count": removed, "summary": spec.summary()}

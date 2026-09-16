@@ -25,7 +25,10 @@ Python for graph wiring, stop — there's a tool call for that instead.
 2. **Shape the graph** → `add_node`, `add_edge`, `remove_node`,
    `remove_edge`, `set_state_schema`, as many calls as needed. Each is a
    small, independent edit — make one call per logical change rather than
-   batching unrelated changes into one state-schema replacement.
+   batching unrelated changes into one state-schema replacement. These
+   calls return a compact summary (counts), not the full spec — call
+   `get_spec` if you need to see the whole graph (e.g. to orient yourself
+   before a non-trivial edit, or to double-check wiring).
 3. **Check before generating** → `validate_graph(project_dir)`. Fix any
    `error`-severity issues (warnings are advisory and won't block codegen,
    but read them anyway — an "unreachable node" warning usually means you

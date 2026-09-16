@@ -11,4 +11,4 @@ def run(project_dir: str, fields: list[dict[str, Any]]) -> dict[str, Any]:
     spec = load_spec(project_dir)
     spec.state = [StateField.from_dict(f) for f in fields]
     save_spec(project_dir, spec)
-    return {"ok": True, "state": [f.to_dict() for f in spec.state], "spec": spec.to_dict()}
+    return {"ok": True, "state": [f.to_dict() for f in spec.state], "summary": spec.summary()}

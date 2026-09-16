@@ -18,6 +18,12 @@ SPEC_FILENAME = "spec.yaml"
 END = "END"
 START = "START"
 
+# Reducer names the renderer recognizes as built-in (see renderer/render.py's
+# _BUILTIN_REDUCERS). Anything else is assumed to be a plain identifier naming
+# a function in the generated project's reducers.py, and validated as such —
+# see validator/validate.py's identifier checks.
+BUILTIN_REDUCER_NAMES = frozenset({"add_messages", "add", "operator.add"})
+
 
 class SpecError(ValueError):
     """Raised for structurally invalid spec.yaml content (bad shape, not graph semantics)."""
@@ -132,6 +138,18 @@ class GraphSpec:
 
     def get_node(self, node_id: str) -> Node | None:
         return next((n for n in self.nodes if n.id == node_id), None)
+
+    def summary(self) -> dict[str, Any]:
+        """Compact counts/identity, safe to echo back on every mutating tool call
+        without the O(graph size) cost of returning the full spec each time."""
+        return {
+            "name": self.name,
+            "entry_point": self.entry_point,
+            "node_count": len(self.nodes),
+            "edge_count": len(self.edges),
+            "state_field_count": len(self.state),
+            "checkpointer_type": self.checkpointer.type,
+        }
 
     def to_dict(self) -> dict[str, Any]:
         return {
