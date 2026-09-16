@@ -7,12 +7,21 @@ that fall out of the same traversal for free).
 
 from __future__ import annotations
 
+import ast
+import keyword
+import re
 from dataclasses import dataclass
 from typing import Any
 
-from ..spec import END, Edge, GraphSpec
+from ..spec import BUILTIN_REDUCER_NAMES, END, Edge, GraphSpec
 
 Severity = str  # "error" | "warning"
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _is_valid_identifier(name: str) -> bool:
+    return bool(_IDENTIFIER_RE.match(name)) and not keyword.iskeyword(name)
 
 
 @dataclass
@@ -54,6 +63,11 @@ def validate(spec: GraphSpec) -> list[Issue]:
     _check_checkpointer(spec, issues)
     entry_valid = _check_entry_point(spec, node_ids, issues)
     _check_dangling_edges(spec, node_ids, issues)
+    _check_function_identifiers(spec, issues)
+    _check_condition_identifiers(spec, issues)
+    _check_state_field_names(spec, issues)
+    _check_reducer_identifiers(spec, issues)
+    _check_state_field_types(spec, issues)
 
     forward = _adjacency(spec, node_ids)
     reachable = _reachable_from(spec.entry_point, forward) if entry_valid else set()
@@ -117,6 +131,95 @@ def _check_checkpointer(spec: GraphSpec, issues: list[Issue]) -> None:
                 "(expected one of: none, memory, sqlite, postgres)",
             )
         )
+
+
+def _check_function_identifiers(spec: GraphSpec, issues: list[Issue]) -> None:
+    # render_graph_python splices this straight into `nodes.<function>` with no
+    # quoting — an invalid identifier here isn't just a typo, it's a way to
+    # inject arbitrary code into the generated graph.py.
+    for n in spec.nodes:
+        function = n.config.get("function", n.id)
+        if not isinstance(function, str) or not _is_valid_identifier(function):
+            issues.append(
+                Issue(
+                    "error",
+                    "invalid_function_name",
+                    f"node '{n.id}' has config.function={function!r}, which isn't a "
+                    "valid Python identifier — it's written as `nodes.<function>` "
+                    "verbatim in the generated code",
+                    node=n.id,
+                )
+            )
+
+
+def _check_condition_identifiers(spec: GraphSpec, issues: list[Issue]) -> None:
+    # Same injection concern as function names: condition becomes
+    # `nodes.<condition>` verbatim in a conditional edge's router reference.
+    for e in spec.edges:
+        if e.condition is not None and not _is_valid_identifier(e.condition):
+            issues.append(
+                Issue(
+                    "error",
+                    "invalid_condition_name",
+                    f"edge from '{e.from_}' has condition={e.condition!r}, which "
+                    "isn't a valid Python identifier — it's written as "
+                    "`nodes.<condition>` verbatim in the generated code",
+                    edge=(e.from_, None),
+                )
+            )
+
+
+def _check_state_field_names(spec: GraphSpec, issues: list[Issue]) -> None:
+    # State field names become TypedDict attribute names verbatim
+    # (`{{ f.name }}: {{ f.annotation }}`) — same injection concern.
+    for f in spec.state:
+        if not _is_valid_identifier(f.name):
+            issues.append(
+                Issue(
+                    "error",
+                    "invalid_state_field_name",
+                    f"state field name {f.name!r} isn't a valid Python identifier "
+                    "— it's written as a TypedDict attribute name verbatim",
+                )
+            )
+
+
+def _check_reducer_identifiers(spec: GraphSpec, issues: list[Issue]) -> None:
+    # Built-in reducers (add_messages, add, operator.add) are handled specially
+    # by the renderer; anything else is spliced in as `reducers.<reducer>`.
+    for f in spec.state:
+        if f.reducer is None or f.reducer in BUILTIN_REDUCER_NAMES:
+            continue
+        if not _is_valid_identifier(f.reducer):
+            issues.append(
+                Issue(
+                    "error",
+                    "invalid_reducer_name",
+                    f"state field '{f.name}' has reducer={f.reducer!r}, which isn't "
+                    "a built-in reducer or a valid Python identifier — non-builtin "
+                    "reducers are written as `reducers.<reducer>` verbatim",
+                )
+            )
+
+
+def _check_state_field_types(spec: GraphSpec, issues: list[Issue]) -> None:
+    # `type` is deliberately a raw Python type expression (e.g.
+    # "list[BaseMessage]"), so we can't restrict it to an identifier — but it
+    # must still parse as a single expression, not arbitrary statements, since
+    # it's spliced into `Annotated[<type>, ...]` / a TypedDict annotation
+    # verbatim.
+    for f in spec.state:
+        try:
+            ast.parse(f.type, mode="eval")
+        except SyntaxError:
+            issues.append(
+                Issue(
+                    "error",
+                    "invalid_state_field_type",
+                    f"state field '{f.name}' has type={f.type!r}, which isn't a "
+                    "valid Python expression",
+                )
+            )
 
 
 def _check_entry_point(spec: GraphSpec, node_ids: set[str], issues: list[Issue]) -> bool:

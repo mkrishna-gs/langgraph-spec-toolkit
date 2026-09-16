@@ -17,7 +17,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from ..spec import END, GraphSpec
+from ..spec import BUILTIN_REDUCER_NAMES, END, GraphSpec
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -43,6 +43,10 @@ _BUILTIN_REDUCERS: dict[str, tuple[str, str]] = {
     "add": ("import operator", "operator.add"),
     "operator.add": ("import operator", "operator.add"),
 }
+assert set(_BUILTIN_REDUCERS) == BUILTIN_REDUCER_NAMES, (
+    "renderer's builtin reducer table drifted from spec.BUILTIN_REDUCER_NAMES "
+    "(the validator's identifier check relies on these matching)"
+)
 
 # checkpointer.type -> (import line, constructor expression)
 _CHECKPOINTER_IMPORTS: dict[str, tuple[str, str]] = {
