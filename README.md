@@ -19,7 +19,7 @@ deterministic, regenerable build artifact you never hand-edit.
 
 ## Quick look
 
-![Demo: init_project, add_node, add_edge, validate_graph, and render_python run end to end, producing a deterministic graph.py](.github/assets/demo.gif)
+![Demo: init_project, apply_changes, validate_graph, and render_python run end to end, producing a deterministic graph.py](.github/assets/demo.gif)
 
 Four tool calls, zero hand-written Python for the graph wiring itself.
 (Regenerate with `vhs .github/assets/demo.tape` — see that file for a
@@ -32,7 +32,7 @@ Four tool calls, zero hand-written Python for the graph wiring itself.
 $ uv run python .github/assets/demo.py
 1) init_project - scaffold spec.yaml, nodes.py
 
-2) add_node / add_edge - small, targeted edits
+2) apply_changes - nodes + edges wired in one round trip
 
 3) validate_graph - catch problems before any code is emitted
 
@@ -164,10 +164,12 @@ and let it drive itself. A typical session:
 
 ```
 init_project(project_dir="my_graph", name="my_graph")
-add_node(project_dir="my_graph", id="start", config={"function": "start"})
-add_node(project_dir="my_graph", id="respond", config={"function": "respond"})
-add_edge(project_dir="my_graph", from_="start", to="respond")
-add_edge(project_dir="my_graph", from_="respond", to="END")
+apply_changes(project_dir="my_graph", operations=[
+    {"op": "add_node", "id": "start"},
+    {"op": "add_node", "id": "respond"},
+    {"op": "add_edge", "from_": "start", "to": "respond"},
+    {"op": "add_edge", "from_": "respond", "to": "END"},
+])
 validate_graph(project_dir="my_graph")   # -> ok: true
 render_python(project_dir="my_graph")    # -> writes my_graph/graph.py
 ```

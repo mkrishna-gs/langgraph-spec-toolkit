@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Scratch output from .github/assets/demo.py
+/demo_graph/
