@@ -73,6 +73,17 @@ def test_dangling_edge_source():
     assert "dangling_edge_source" in codes(spec)
 
 
+def test_explicit_start_edge_gets_specific_error():
+    # entry_point is automatic; an edge from "START" is a real mistake an
+    # agent can make after seeing `workflow.add_edge(START, ...)` in
+    # rendered output and assuming it needs to be wired explicitly too.
+    spec = _linear_spec(edges=[Edge(from_="START", to="a"), Edge(from_="a", to="END")])
+    result_codes = codes(spec)
+    assert "explicit_start_edge" in result_codes
+    # gets the specific error, not the generic dangling-source one
+    assert "dangling_edge_source" not in result_codes
+
+
 def test_dangling_edge_target():
     spec = _linear_spec(edges=[Edge(from_="a", to="ghost")])
     assert "dangling_edge_target" in codes(spec)

@@ -2,6 +2,7 @@ from mcp_server.spec import load_spec
 from mcp_server.tools import (
     add_edge,
     add_node,
+    apply_changes,
     get_spec,
     init_project,
     remove_edge,
@@ -116,6 +117,105 @@ class TestAddEdge:
         self._project(project_dir)
         result = add_edge.run(project_dir=str(project_dir), from_="a", condition="route")
         assert result["ok"] is False
+
+
+class TestApplyChanges:
+    def test_happy_path_wires_a_whole_graph_in_one_call(self, project_dir):
+        init_project.run(project_dir=str(project_dir), name="demo")
+        result = apply_changes.run(
+            project_dir=str(project_dir),
+            operations=[
+                {"op": "add_node", "id": "greet"},
+                {"op": "add_node", "id": "respond"},
+                {"op": "add_edge", "from_": "greet", "to": "respond"},
+                {"op": "add_edge", "from_": "respond", "to": "END"},
+            ],
+        )
+        assert result["ok"] is True
+        assert result["applied"] == 4
+        assert result["summary"]["node_count"] == 2
+        assert result["summary"]["edge_count"] == 2
+        assert result["summary"]["entry_point"] == "greet"
+
+        spec = load_spec(project_dir)
+        assert spec.node_ids() == {"greet", "respond"}
+        assert len(spec.edges) == 2
+
+    def test_supports_conditional_edges_and_state_schema(self, project_dir):
+        init_project.run(project_dir=str(project_dir), name="demo")
+        result = apply_changes.run(
+            project_dir=str(project_dir),
+            operations=[
+                {"op": "set_state_schema", "fields": [{"name": "x", "type": "str"}]},
+                {"op": "add_node", "id": "a"},
+                {"op": "add_node", "id": "b"},
+                {
+                    "op": "add_edge",
+                    "from_": "a",
+                    "condition": "route",
+                    "paths": {"go": "b", "stop": "END"},
+                },
+                {"op": "add_edge", "from_": "b", "to": "END"},
+            ],
+        )
+        assert result["ok"] is True
+        spec = load_spec(project_dir)
+        assert spec.state[0].name == "x"
+        assert any(e.is_conditional for e in spec.edges)
+
+    def test_supports_remove_operations(self, project_dir):
+        init_project.run(project_dir=str(project_dir), name="demo")
+        add_node.run(project_dir=str(project_dir), id="a")
+        add_node.run(project_dir=str(project_dir), id="b")
+        add_edge.run(project_dir=str(project_dir), from_="a", to="b")
+
+        result = apply_changes.run(
+            project_dir=str(project_dir),
+            operations=[
+                {"op": "remove_edge", "from_": "a", "to": "b"},
+                {"op": "remove_node", "id": "b"},
+            ],
+        )
+        assert result["ok"] is True
+        spec = load_spec(project_dir)
+        assert spec.node_ids() == {"a"}
+        assert spec.edges == []
+
+    def test_unknown_op_writes_nothing(self, project_dir):
+        init_project.run(project_dir=str(project_dir), name="demo")
+        result = apply_changes.run(
+            project_dir=str(project_dir),
+            operations=[{"op": "add_node", "id": "a"}, {"op": "not_a_real_op"}],
+        )
+        assert result["ok"] is False
+        assert "operation 1" in result["error"]
+        assert load_spec(project_dir).node_ids() == set()  # nothing written
+
+    def test_malformed_operation_writes_nothing(self, project_dir):
+        init_project.run(project_dir=str(project_dir), name="demo")
+        result = apply_changes.run(
+            project_dir=str(project_dir),
+            operations=[
+                {"op": "add_node", "id": "a"},
+                {"op": "add_edge", "from_": "a"},  # missing 'to'/'condition'
+            ],
+        )
+        assert result["ok"] is False
+        assert load_spec(project_dir).node_ids() == set()  # nothing written, not even 'a'
+
+    def test_missing_required_field_per_op(self, project_dir):
+        init_project.run(project_dir=str(project_dir), name="demo")
+        result = apply_changes.run(
+            project_dir=str(project_dir), operations=[{"op": "add_node"}]  # no 'id'
+        )
+        assert result["ok"] is False
+        assert "needs 'id'" in result["error"]
+
+    def test_empty_operations_list_is_a_no_op(self, project_dir):
+        init_project.run(project_dir=str(project_dir), name="demo")
+        result = apply_changes.run(project_dir=str(project_dir), operations=[])
+        assert result["ok"] is True
+        assert result["applied"] == 0
 
 
 class TestRemoveNode:

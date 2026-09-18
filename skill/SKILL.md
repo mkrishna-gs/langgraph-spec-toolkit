@@ -23,12 +23,22 @@ Python for graph wiring, stop — there's a tool call for that instead.
 1. **New project** → `init_project(project_dir, name, state_fields?)`.
    Creates `spec.yaml`, a `nodes.py` stub, and `__init__.py`.
 2. **Shape the graph** → `add_node`, `add_edge`, `remove_node`,
-   `remove_edge`, `set_state_schema`, as many calls as needed. Each is a
-   small, independent edit — make one call per logical change rather than
-   batching unrelated changes into one state-schema replacement. These
-   calls return a compact summary (counts), not the full spec — call
-   `get_spec` if you need to see the whole graph (e.g. to orient yourself
-   before a non-trivial edit, or to double-check wiring).
+   `remove_edge`, `set_state_schema`, `apply_changes`.
+
+   **Prefer `apply_changes` whenever the request wires more than one
+   node/edge at once** (a tool-calling loop, a multi-node subgraph, any
+   "add this whole shape" request) — pass a list of operations and it
+   applies them in one round trip instead of several, atomically (nothing
+   is written if any operation is invalid). Reach for the single-op tools
+   (`add_node`, `add_edge`, ...) only for a genuinely standalone edit, like
+   adding one node with no new edges. This isn't a style preference — see
+   the README's [Why](../README.md#why) section for the measured
+   real-world cost. Don't default to one call per node/edge just because
+   that's simpler to reason about one at a time.
+
+   All of these return a compact summary (counts), not the full spec —
+   call `get_spec` if you need to see the whole graph (e.g. to orient
+   yourself before a non-trivial edit, or to double-check wiring).
 3. **Check before generating** → `validate_graph(project_dir)`. Fix any
    `error`-severity issues (warnings are advisory and won't block codegen,
    but read them anyway — an "unreachable node" warning usually means you
@@ -55,7 +65,11 @@ Python for graph wiring, stop — there's a tool call for that instead.
   or `"llm"` — not currently enforced), `config` (a dict; `config.function`
   names the callable in `nodes.py`). The *first* node added to a fresh
   project becomes `entry_point` automatically; pass `entry_point=True` to
-  a later `add_node` call to change it.
+  a later `add_node` call to change it. **Don't add an edge from `"START"`
+  yourself** — even though rendered `graph.py` contains a literal
+  `workflow.add_edge(START, ...)` line, that edge is derived from
+  `entry_point`, not something you wire as a spec edge; doing so is a
+  validation error (`explicit_start_edge`).
 - **Edges** (`add_edge`): simple (`to` is a node id or `"END"`) or
   conditional (`condition` names a router function in `nodes.py`; `paths`
   maps the router's return value to a target node id or `"END"`). The
@@ -68,11 +82,11 @@ Python for graph wiring, stop — there's a tool call for that instead.
 
 ## Common requests → tool calls
 
-- *"Add a tool-calling loop after the chatbot node"* →
-  `add_edge(from_="chatbot", condition="route_after_chatbot", paths={"continue": "tools", "end": "END"})`,
-  then `add_edge(from_="tools", to="chatbot")`, then write
-  `route_after_chatbot` and `call_tools` (or whatever you named them) in
-  `nodes.py`.
+- *"Add a tool-calling loop after the chatbot node"* → one `apply_changes`
+  call, not two separate `add_edge` calls:
+  `apply_changes(operations=[{"op": "add_node", "id": "tools", "config": {"function": "call_tools"}}, {"op": "add_edge", "from_": "chatbot", "condition": "route_after_chatbot", "paths": {"continue": "tools", "end": "END"}}, {"op": "add_edge", "from_": "tools", "to": "chatbot"}])`,
+  then write `route_after_chatbot` and `call_tools` (or whatever you named
+  them) in `nodes.py`.
 - *"Remove the summarizer node"* → `remove_node(id="summarizer")`. This
   cascades to delete edges touching it — check `validate_graph` afterward
   in case that left another node unreachable or without a path to `END`.

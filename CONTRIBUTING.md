@@ -14,8 +14,11 @@ changes are easier to land as a shared plan than as a surprise diff.
 - `mcp_server/renderer/` — deterministic Jinja2 codegen: `GraphSpec` →
   `graph.py`. No LLM calls anywhere in this path.
 - `mcp_server/tools/` — one file per MCP tool (`add_node.py`, `add_edge.py`,
-  ...), each exposing a plain `run(...)` function. `mcp_server/server.py`
-  wires these up as MCP tools.
+  ...), each exposing `run(project_dir, ...)`. Most mutating tools also
+  expose `apply(spec, ...)` — the same edit applied to an already-loaded
+  spec, no load/save — which `apply_changes.py` reuses so a batched edit
+  and a single-op edit share one source of truth instead of two copies
+  that can drift. `mcp_server/server.py` wires these up as MCP tools.
 - `tests/` — one test file per module above, plus `test_tools.py`
   (integration tests through each tool's `run()`) and `test_server.py`
   (confirms MCP tool registration).

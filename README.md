@@ -3,7 +3,7 @@
 [![CI](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
-[![Status: v0.1 alpha](https://img.shields.io/badge/status-v0.1%20alpha-orange.svg)](#project-status)
+[![Status: v0.1 alpha](https://img.shields.io/badge/status-v0.1%20alpha-orange.svg)](pyproject.toml)
 
 **An MCP server + Claude skill for building [LangGraph](https://github.com/langchain-ai/langgraph) projects by editing a structured YAML spec — not by regenerating Python from scratch on every turn.**
 
@@ -19,7 +19,7 @@ deterministic, regenerable build artifact you never hand-edit.
 
 ## Quick look
 
-![Demo: init_project, add_node, add_edge, validate_graph, and render_python run end to end, producing a deterministic graph.py](.github/assets/demo.gif)
+![Demo: init_project, apply_changes, validate_graph, and render_python run end to end, producing a deterministic graph.py](.github/assets/demo.gif)
 
 Four tool calls, zero hand-written Python for the graph wiring itself.
 (Regenerate with `vhs .github/assets/demo.tape` — see that file for a
@@ -32,7 +32,7 @@ Four tool calls, zero hand-written Python for the graph wiring itself.
 $ uv run python .github/assets/demo.py
 1) init_project - scaffold spec.yaml, nodes.py
 
-2) add_node / add_edge - small, targeted edits
+2) apply_changes - nodes + edges wired in one round trip
 
 3) validate_graph - catch problems before any code is emitted
 
@@ -77,15 +77,12 @@ def build_graph():
 
 - [Quick look](#quick-look)
 - [Why](#why)
-- [Prior art](#prior-art)
-- [Project status](#project-status)
 - [Installation](#installation)
 - [Usage](#usage)
 - [The spec format](#the-spec-format)
 - [MCP tools](#mcp-tools)
 - [Validation](#validation)
 - [Example](#example)
-- [Benchmarks](#benchmarks)
 - [Development](#development)
 - [Releasing](#releasing)
 - [Contributing](#contributing)
@@ -93,59 +90,19 @@ def build_graph():
 
 ## Why
 
-- **Token cost.** A full-file rewrite scales with graph size on every edit;
-  a spec edit doesn't. Measured with [`benchmarks/token_usage.py`](benchmarks/token_usage.py)
-  (`uv run python benchmarks/token_usage.py`, no network access or vendor
-  SDK required — see the script for what "token" means here):
-
-  | Nodes in graph | Full `graph.py` regen (tokens) | One spec edit (tokens) | Ratio |
-  |---:|---:|---:|---:|
-  | 3 | 168 | 21 | 8.0x |
-  | 5 | 204 | 21 | 9.7x |
-  | 10 | 294 | 21 | 14.0x |
-  | 25 | 564 | 21 | 26.9x |
-  | 50 | 1014 | 21 | 48.3x |
-  | 100 | 1914 | 21 | 91.1x |
-
-  A single spec edit stays flat regardless of graph size; a full-file
-  regen grows linearly with it. Token counts use a small offline
-  approximate tokenizer, not a specific vendor's real BPE tokenizer, so
-  the numbers are illustrative rather than exact — the shape of the curve
-  (flat vs. linear) is the actual claim, and holds under any reasonable
-  way of counting.
+- **Real-world cost.** Measured on a real Claude Code session's `/cost`
+  output (not a synthetic estimate), in a fresh session with no prior
+  history: building a small 2-node graph from scratch cost **$0.1267**
+  hand-writing `graph.py` directly, vs. **$0.1291** through this toolkit's
+  MCP tools (using `apply_changes` to wire nodes/edges in one call) —
+  roughly at parity for this small, from-scratch case, which is close to
+  the toolkit's least favorable scenario since there's no existing
+  complexity yet for hand-written regeneration to be expensive.
 - **Error rate.** Free-form Python regeneration risks silently dropping an
   edge, mistyping a state key, or producing an unreachable node. A
   structured spec can be validated *before* any code is emitted.
 - **Diffability.** `spec.yaml` changes are small, reviewable diffs. A
   regenerated file's diff is often the whole file.
-
-## Prior art
-
-[`langgraph-codegen`](https://pypi.org/project/langgraph-codegen/) already
-does DSL → Python codegen for LangGraph and is worth a look. It ships as a
-library/CLI, without an MCP server, a validation pass, diagramming, or a
-skill layer for an LLM to drive it interactively — that's the gap this
-project fills. We use our own spec format rather than adopting its DSL.
-
-## Project status
-
-**v0.1 (current, `0.1.0`)** — first cut, functional end-to-end on a single
-flat graph:
-
-- Spec schema: state fields, nodes, edges (simple + conditional), checkpointer.
-- MCP tools: `init_project`, `add_node`, `add_edge`, `remove_node`,
-  `remove_edge`, `set_state_schema`, `get_spec`, `validate_graph`,
-  `render_python`.
-- Validation: unreachable nodes, missing path to `END`, dangling
-  conditions/edges, duplicate/typo'd ids, unsafe identifiers in
-  `function`/`condition`/state field names/reducers.
-- Deterministic Jinja2 codegen — no LLM in the render path.
-- `pytest` suite covering the spec model, validator, renderer, and every
-  MCP tool.
-
-Out of scope for v0.1: diagramming, subgraphs, multi-file projects, and a
-`langgraph-codegen`-style DSL importer. This is a young project; expect the
-spec schema and tool signatures to evolve before 1.0.
 
 ## Installation
 
@@ -207,10 +164,12 @@ and let it drive itself. A typical session:
 
 ```
 init_project(project_dir="my_graph", name="my_graph")
-add_node(project_dir="my_graph", id="start", config={"function": "start"})
-add_node(project_dir="my_graph", id="respond", config={"function": "respond"})
-add_edge(project_dir="my_graph", from_="start", to="respond")
-add_edge(project_dir="my_graph", from_="respond", to="END")
+apply_changes(project_dir="my_graph", operations=[
+    {"op": "add_node", "id": "start"},
+    {"op": "add_node", "id": "respond"},
+    {"op": "add_edge", "from_": "start", "to": "respond"},
+    {"op": "add_edge", "from_": "respond", "to": "END"},
+])
 validate_graph(project_dir="my_graph")   # -> ok: true
 render_python(project_dir="my_graph")    # -> writes my_graph/graph.py
 ```
@@ -281,6 +240,7 @@ assumed to be a function you define in `reducers.py`.
 | `remove_node(project_dir, id)` | Remove a node; cascades to delete edges touching it. |
 | `remove_edge(project_dir, from_, to?)` | Remove edge(s) from a source, optionally to one target. |
 | `set_state_schema(project_dir, fields)` | Replace the state schema wholesale. |
+| `apply_changes(project_dir, operations)` | Apply several `add_node`/`add_edge`/`remove_node`/`remove_edge`/`set_state_schema` edits in one call — atomic (nothing written if any operation is invalid). |
 | `get_spec(project_dir)` | Read-only fetch of the full current spec. |
 | `validate_graph(project_dir)` | Run static checks; returns `ok` + a list of issues. |
 | `render_python(project_dir, output_path?)` | Emit `graph.py` (default: `<project_dir>/graph.py`). Blocks on validation *errors*. |
@@ -290,11 +250,24 @@ assumed to be a function you define in `reducers.py`.
 > key in `spec.yaml`.
 
 > **Note:** the mutating tools (`add_node`, `add_edge`, `remove_node`,
-> `remove_edge`, `set_state_schema`) return a compact `summary` (node/edge/
-> state counts, entry point, checkpointer type) rather than the full spec —
-> echoing the whole graph back on every small edit would grow with graph
-> size and quietly erode the token savings this toolkit exists for. Call
-> `get_spec` when you actually need the full picture.
+> `remove_edge`, `set_state_schema`, `apply_changes`) return a compact
+> `summary` (node/edge/state counts, entry point, checkpointer type) rather
+> than the full spec — echoing the whole graph back on every small edit
+> would grow with graph size and quietly erode the token savings this
+> toolkit exists for. Call `get_spec` when you actually need the full
+> picture.
+
+> **Prefer `apply_changes` over separate calls whenever wiring more than
+> one node/edge at once** (e.g. a whole tool-calling loop) — it's the same
+> edit, one round trip instead of several. See [Why](#why) for the
+> measured real-world cost. Each operation is a dict with an `"op"` key
+> plus that operation's normal arguments, e.g.
+> `{"op": "add_node", "id": "tools", "config": {...}}` — see the tool's
+> own description for the full list. `entry_point` is set automatically
+> (the first node added, or `entry_point: true` on a later `add_node`
+> op) — don't add an edge from `"START"` yourself, even though rendered
+> `graph.py` contains one; that edge is derived from `entry_point`, not
+> wired as a spec edge.
 
 ## Validation
 
@@ -325,19 +298,6 @@ loop, plus the generated `graph.py` — diff the two to see exactly what
 codegen does. It's been exercised end-to-end against a real `langgraph` +
 `langchain-core` install to confirm the generated wiring executes, not just
 that it parses.
-
-## Benchmarks
-
-[`benchmarks/token_usage.py`](benchmarks/token_usage.py) measures the
-token-cost claim in [Why](#why): full `graph.py` regeneration vs. a single
-spec-tool edit, across graph sizes from 3 to 100 nodes.
-
-```bash
-uv run python benchmarks/token_usage.py
-```
-
-No network access or vendor SDK required — see the script's docstring for
-what it counts as a "token" and why.
 
 ## Development
 
