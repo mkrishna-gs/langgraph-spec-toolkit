@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from ..spec import BUILTIN_REDUCER_NAMES, END, Edge, GraphSpec
+from ..spec import BUILTIN_REDUCER_NAMES, END, START, Edge, GraphSpec
 
 Severity = str  # "error" | "warning"
 
@@ -242,7 +242,19 @@ def _check_entry_point(spec: GraphSpec, node_ids: set[str], issues: list[Issue])
 
 def _check_dangling_edges(spec: GraphSpec, node_ids: set[str], issues: list[Issue]) -> None:
     for e in spec.edges:
-        if e.from_ not in node_ids:
+        if e.from_ == START:
+            issues.append(
+                Issue(
+                    "error",
+                    "explicit_start_edge",
+                    f"edge from {START!r} to {e.to!r} isn't needed or valid — "
+                    "entry_point is set automatically (the first node added, or "
+                    "pass entry_point=true on a later add_node) rather than wired "
+                    "as an edge from START",
+                    edge=(e.from_, e.to),
+                )
+            )
+        elif e.from_ not in node_ids:
             issues.append(
                 Issue(
                     "error",

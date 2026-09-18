@@ -6,6 +6,7 @@ EXPECTED_TOOLS = {
     "init_project",
     "add_node",
     "add_edge",
+    "apply_changes",
     "remove_node",
     "remove_edge",
     "set_state_schema",

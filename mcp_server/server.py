@@ -18,6 +18,7 @@ from mcp.server.mcpserver import MCPServer
 
 from .tools import add_edge as add_edge_tool
 from .tools import add_node as add_node_tool
+from .tools import apply_changes as apply_changes_tool
 from .tools import get_spec as get_spec_tool
 from .tools import init_project as init_project_tool
 from .tools import remove_edge as remove_edge_tool
@@ -31,10 +32,12 @@ mcp = MCPServer(
     instructions=(
         "Build LangGraph projects by editing a structured spec.yaml instead of "
         "regenerating Python from scratch each turn. Call init_project once, then "
-        "add_node/add_edge/set_state_schema to shape the graph, validate_graph to "
-        "check it, and render_python to emit graph.py. add_node/add_edge/remove_node/"
-        "remove_edge/set_state_schema return a compact summary (counts), not the full "
-        "spec — call get_spec when you need the whole picture."
+        "shape the graph with add_node/add_edge/set_state_schema (one call each) or "
+        "apply_changes (several edits in one call — prefer this when wiring more than "
+        "one node/edge at once, e.g. a whole tool-calling loop), validate_graph to "
+        "check it, and render_python to emit graph.py. Mutating tools return a compact "
+        "summary (counts), not the full spec — call get_spec when you need the whole "
+        "picture."
     ),
 )
 
@@ -116,6 +119,39 @@ def set_state_schema(project_dir: str, fields: list[dict[str, Any]]) -> dict[str
     function (e.g. "add_messages", or a custom name defined in reducers.py).
     """
     return set_state_schema_tool.run(project_dir=project_dir, fields=fields)
+
+
+@mcp.tool()
+def apply_changes(project_dir: str, operations: list[dict[str, Any]]) -> dict[str, Any]:
+    """Apply several spec edits in one call instead of one add_node/add_edge/... call each.
+
+    Prefer this over separate calls whenever wiring more than one node/edge
+    at once (e.g. adding a whole tool-calling loop) — it's the same edit,
+    one round trip instead of several.
+
+    `operations` is a list, applied in order against one loaded spec and
+    saved once at the end. Nothing is written if any operation is invalid
+    (bad op name, missing required field, dangling reference) — the whole
+    batch is atomic. Each entry is a dict with an "op" key plus that
+    operation's normal arguments:
+
+      {"op": "add_node", "id": "tools", "config": {"function": "call_tools"}}
+      {"op": "add_edge", "from_": "chatbot", "condition": "route",
+       "paths": {"continue": "tools", "end": "END"}}
+      {"op": "add_edge", "from_": "tools", "to": "chatbot"}
+      {"op": "remove_node", "id": "..."}
+      {"op": "remove_edge", "from_": "...", "to": "..."}
+      {"op": "set_state_schema", "fields": [...]}
+
+    entry_point is set automatically (the first node added, or pass
+    entry_point=true on a later add_node op) — don't add an edge from
+    "START" yourself, even though rendered graph.py contains one; that
+    edge is derived from entry_point, not wired as a spec edge.
+
+    Returns a compact summary (counts), like the other mutating tools —
+    call get_spec if you need the full picture afterward.
+    """
+    return apply_changes_tool.run(project_dir=project_dir, operations=operations)
 
 
 @mcp.tool()

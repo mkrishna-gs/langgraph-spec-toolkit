@@ -14,8 +14,11 @@ changes are easier to land as a shared plan than as a surprise diff.
 - `mcp_server/renderer/` — deterministic Jinja2 codegen: `GraphSpec` →
   `graph.py`. No LLM calls anywhere in this path.
 - `mcp_server/tools/` — one file per MCP tool (`add_node.py`, `add_edge.py`,
-  ...), each exposing a plain `run(...)` function. `mcp_server/server.py`
-  wires these up as MCP tools.
+  ...), each exposing `run(project_dir, ...)`. Most mutating tools also
+  expose `apply(spec, ...)` — the same edit applied to an already-loaded
+  spec, no load/save — which `apply_changes.py` reuses so a batched edit
+  and a single-op edit share one source of truth instead of two copies
+  that can drift. `mcp_server/server.py` wires these up as MCP tools.
 - `tests/` — one test file per module above, plus `test_tools.py`
   (integration tests through each tool's `run()`) and `test_server.py`
   (confirms MCP tool registration).
@@ -54,6 +57,13 @@ uv sync
    requiring it to be a safe identifier — see the "Unsafe identifiers"
    checks in `mcp_server/validator/validate.py` for the existing pattern
    and why they exist.
+6. If the change affects what using this toolkit actually costs (a new
+   tool, a change to what a tool returns, anything touching round trips),
+   add a dated entry to [`EXPERIMENTS.md`](EXPERIMENTS.md) — a real Claude
+   Code session's `/cost` output, not a synthetic estimate. See that
+   file's existing entries for the methodology. This project prefers a
+   real, reproducible number that's been verified end to end over a
+   theoretical one.
 
 CI (`.github/workflows/ci.yml`) runs the same lint + test steps on every
 push and pull request, across Python 3.11 and 3.12.
