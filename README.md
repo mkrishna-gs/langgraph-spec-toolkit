@@ -77,7 +77,6 @@ def build_graph():
 
 - [Quick look](#quick-look)
 - [Why](#why)
-- [Prior art](#prior-art)
 - [Project status](#project-status)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -105,14 +104,6 @@ def build_graph():
   structured spec can be validated *before* any code is emitted.
 - **Diffability.** `spec.yaml` changes are small, reviewable diffs. A
   regenerated file's diff is often the whole file.
-
-## Prior art
-
-[`langgraph-codegen`](https://pypi.org/project/langgraph-codegen/) already
-does DSL → Python codegen for LangGraph and is worth a look. It ships as a
-library/CLI, without an MCP server, a validation pass, diagramming, or a
-skill layer for an LLM to drive it interactively — that's the gap this
-project fills. We use our own spec format rather than adopting its DSL.
 
 ## Project status
 
