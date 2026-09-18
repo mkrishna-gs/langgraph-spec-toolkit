@@ -1,6 +1,6 @@
 [project]
 name = "langgraph-spec-toolkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server + Claude skill for building LangGraph projects by editing a structured YAML spec instead of regenerating Python each turn"
 readme = "README.md"
 license = "MIT"

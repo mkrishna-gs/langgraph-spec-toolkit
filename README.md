@@ -3,7 +3,7 @@
 [![CI](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
-[![Status: v0.1 alpha](https://img.shields.io/badge/status-v0.1%20alpha-orange.svg)](pyproject.toml)
+[![Status: v0.2 alpha](https://img.shields.io/badge/status-v0.2%20alpha-orange.svg)](pyproject.toml)
 
 **An MCP server + Claude skill for building [LangGraph](https://github.com/langchain-ai/langgraph) projects by editing a structured YAML spec — not by regenerating Python from scratch on every turn.**
 
