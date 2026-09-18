@@ -92,18 +92,13 @@ def build_graph():
 
 ## Why
 
-- **Real-world cost.** Measured on live Claude Code sessions (real
-  `/cost` output, not a synthetic estimate) building the same small
-  2-node graph from scratch, in a fresh session each time: hand-writing
-  `graph.py` directly cost **$0.1267**; building it through this toolkit's
-  MCP tools (using `apply_changes` to wire nodes/edges in one call) cost
-  **$0.1291** — roughly at parity for this small, from-scratch case. See
-  [`EXPERIMENTS.md`](EXPERIMENTS.md) for the full methodology and what
-  else these sessions turned up (a documentation gap and a validator gap,
-  both fixed as a direct result of running this for real). We're
-  recording this as we go rather than claiming a bigger number than
-  we've actually verified — a from-scratch build of a trivial graph is
-  close to the toolkit's least favorable case, since there's no existing
+- **Real-world cost.** Measured on a real Claude Code session's `/cost`
+  output (not a synthetic estimate), in a fresh session with no prior
+  history: building a small 2-node graph from scratch cost **$0.1267**
+  hand-writing `graph.py` directly, vs. **$0.1291** through this toolkit's
+  MCP tools (using `apply_changes` to wire nodes/edges in one call) —
+  roughly at parity for this small, from-scratch case, which is close to
+  the toolkit's least favorable scenario since there's no existing
   complexity yet for hand-written regeneration to be expensive.
 - **Error rate.** Free-form Python regeneration risks silently dropping an
   edge, mistyping a state key, or producing an unreachable node. A

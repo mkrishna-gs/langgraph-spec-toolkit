@@ -57,13 +57,6 @@ uv sync
    requiring it to be a safe identifier — see the "Unsafe identifiers"
    checks in `mcp_server/validator/validate.py` for the existing pattern
    and why they exist.
-6. If the change affects what using this toolkit actually costs (a new
-   tool, a change to what a tool returns, anything touching round trips),
-   add a dated entry to [`EXPERIMENTS.md`](EXPERIMENTS.md) — a real Claude
-   Code session's `/cost` output, not a synthetic estimate. See that
-   file's existing entries for the methodology. This project prefers a
-   real, reproducible number that's been verified end to end over a
-   theoretical one.
 
 CI (`.github/workflows/ci.yml`) runs the same lint + test steps on every
 push and pull request, across Python 3.11 and 3.12.
