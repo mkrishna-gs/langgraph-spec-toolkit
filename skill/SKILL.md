@@ -31,10 +31,10 @@ Python for graph wiring, stop — there's a tool call for that instead.
    applies them in one round trip instead of several, atomically (nothing
    is written if any operation is invalid). Reach for the single-op tools
    (`add_node`, `add_edge`, ...) only for a genuinely standalone edit, like
-   adding one node with no new edges. This isn't a style preference —
-   measured on a real session, batching a 2-node build cut the round trips
-   from 9 to 6 and the cost by ~30%. Don't default to one call per node/edge
-   just because that's simpler to reason about one at a time.
+   adding one node with no new edges. This isn't a style preference — see
+   the README's [Why](../README.md#why) section for the measured
+   real-world cost. Don't default to one call per node/edge just because
+   that's simpler to reason about one at a time.
 
    All of these return a compact summary (counts), not the full spec —
    call `get_spec` if you need to see the whole graph (e.g. to orient

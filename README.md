@@ -3,7 +3,7 @@
 [![CI](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/mkrishna-gs/langgraph-spec-toolkit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
-[![Status: v0.1 alpha](https://img.shields.io/badge/status-v0.1%20alpha-orange.svg)](#project-status)
+[![Status: v0.1 alpha](https://img.shields.io/badge/status-v0.1%20alpha-orange.svg)](pyproject.toml)
 
 **An MCP server + Claude skill for building [LangGraph](https://github.com/langchain-ai/langgraph) projects by editing a structured YAML spec — not by regenerating Python from scratch on every turn.**
 
@@ -77,7 +77,6 @@ def build_graph():
 
 - [Quick look](#quick-look)
 - [Why](#why)
-- [Project status](#project-status)
 - [Installation](#installation)
 - [Usage](#usage)
 - [The spec format](#the-spec-format)
@@ -104,26 +103,6 @@ def build_graph():
   structured spec can be validated *before* any code is emitted.
 - **Diffability.** `spec.yaml` changes are small, reviewable diffs. A
   regenerated file's diff is often the whole file.
-
-## Project status
-
-**v0.1 (current, `0.1.0`)** — first cut, functional end-to-end on a single
-flat graph:
-
-- Spec schema: state fields, nodes, edges (simple + conditional), checkpointer.
-- MCP tools: `init_project`, `add_node`, `add_edge`, `remove_node`,
-  `remove_edge`, `set_state_schema`, `apply_changes`, `get_spec`,
-  `validate_graph`, `render_python`.
-- Validation: unreachable nodes, missing path to `END`, dangling
-  conditions/edges, duplicate/typo'd ids, unsafe identifiers in
-  `function`/`condition`/state field names/reducers.
-- Deterministic Jinja2 codegen — no LLM in the render path.
-- `pytest` suite covering the spec model, validator, renderer, and every
-  MCP tool.
-
-Out of scope for v0.1: diagramming, subgraphs, multi-file projects, and a
-`langgraph-codegen`-style DSL importer. This is a young project; expect the
-spec schema and tool signatures to evolve before 1.0.
 
 ## Installation
 
@@ -278,16 +257,15 @@ assumed to be a function you define in `reducers.py`.
 
 > **Prefer `apply_changes` over separate calls whenever wiring more than
 > one node/edge at once** (e.g. a whole tool-calling loop) — it's the same
-> edit, one round trip instead of several. Measured on a real Claude Code
-> session building a 2-node graph from scratch: 9 tool-call round trips
-> individually vs. 6 with `apply_changes`, $0.1825 vs. $0.1291. Each
-> operation is a dict with an `"op"` key plus that operation's normal
-> arguments, e.g. `{"op": "add_node", "id": "tools", "config": {...}}` —
-> see the tool's own description for the full list. `entry_point` is set
-> automatically (the first node added, or `entry_point: true` on a later
-> `add_node` op) — don't add an edge from `"START"` yourself, even though
-> rendered `graph.py` contains one; that edge is derived from
-> `entry_point`, not wired as a spec edge.
+> edit, one round trip instead of several. See [Why](#why) for the
+> measured real-world cost. Each operation is a dict with an `"op"` key
+> plus that operation's normal arguments, e.g.
+> `{"op": "add_node", "id": "tools", "config": {...}}` — see the tool's
+> own description for the full list. `entry_point` is set automatically
+> (the first node added, or `entry_point: true` on a later `add_node`
+> op) — don't add an edge from `"START"` yourself, even though rendered
+> `graph.py` contains one; that edge is derived from `entry_point`, not
+> wired as a spec edge.
 
 ## Validation
 
